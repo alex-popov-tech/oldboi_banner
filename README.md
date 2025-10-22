@@ -91,6 +91,25 @@ PATREON_TOKEN=stu901vwx234yz567
 PATREON_CAMPAIGN_ID=8901234
 ```
 
+### Optional: Custom Polling Intervals
+
+You can customize how often each platform is polled by adding these optional variables to your `.env` file:
+
+```env
+# Polling intervals in milliseconds (optional)
+TWITCH_POLL_INTERVAL=30000      # Default: 30 seconds
+PATREON_POLL_INTERVAL=600000    # Default: 10 minutes (600000ms)
+MONOBANK_POLL_INTERVAL=45000    # Default: 45 seconds
+YOUTUBE_POLL_INTERVAL=60000     # Default: 60 seconds
+```
+
+**Why different intervals?**
+- **Patreon** polls less frequently (10 minutes) to avoid API rate limits, as it makes multiple paginated requests
+- **Twitch/Monobank/YouTube** poll more frequently (30-60 seconds) for near real-time updates
+- The application uses intelligent scheduling to wake up only when needed, reducing CPU usage
+
+If not specified, the default intervals shown above will be used.
+
 ## Running the Application
 
 ### Start the Application
@@ -134,40 +153,56 @@ When starting the application for the first time, you will need to log in to You
 ### During Operation
 
 Once fully initialized, the application will:
-- Fetch subscriber counts every 60 seconds
-- Display detailed logs in the terminal for each platform
-- Show total subscriber count
-- Update `widget.html` automatically with the latest count
+- Poll each platform at its configured interval (see Polling Intervals section)
+- Use intelligent scheduling to poll only when needed
+- Cache results between polls for fast widget updates
+- Display detailed logs in the terminal showing which sources are being polled
+- Update `widget.html` automatically with the aggregated count
+
+**Polling Behavior:**
+- Each source is polled independently based on its interval
+- The application sleeps dynamically until the next source needs polling
+- Cached values are used for sources that don't need immediate updates
+- This approach reduces API calls (especially for Patreon) and improves efficiency
 
 Example terminal output:
 ```
 ============================================================
-Fetching at 22.10.2025, 14:30:45
+Checking at 22.10.2025, 14:30:45
 ============================================================
-Twitch subs: 150 (234ms)
-Patreon patrons: 75 (567ms)
-Monobank patrons: 32 (123ms)
-YouTube oldplay sponsors: 48 (1234ms)
-YouTube oldboi sponsors: 92 (1456ms)
+Polling Twitch (last: 30s ago)
+Polling Monobank (last: 45s ago)
+Polling YouTube oldplay (last: 60s ago)
+Polling YouTube oldboi (last: 60s ago)
+twitch: 150 (234ms)
+monobank: 32 (123ms)
+youtubeOldplay: 48 (1234ms)
+youtubeOldboi: 92 (1456ms)
 ============================================================
 Total subscribers: 397
-Total iteration time: 1789ms
+Iteration time: 1789ms
 ============================================================
 Widget updated: widget.html (counter: 397)
+Sleeping for 30s until next poll
 ```
+
+**Note:** Patreon is polled less frequently (every 10 minutes by default) to respect API rate limits. During iterations where Patreon isn't polled, the cached value is used.
 
 ## Using the Widget in OBS
 
 1. In OBS Studio, add a new "Browser Source"
 2. Check "Local file" and browse to `widget.html` in your project directory
 3. Set width and height as desired
-4. The counter will update automatically every minute
+4. The counter updates automatically based on configured polling intervals
 
 ## Notes
 
 - The application runs continuously and must be kept running for the widget to update
 - Internet connection is required
-- API rate limits may apply depending on your platform subscription level
+- **Rate limit optimization:** Polling intervals are configured to minimize API requests while maintaining data freshness
+  - Patreon polls every 10 minutes (reduces API calls by 90% compared to every minute)
+  - Other sources poll every 30-60 seconds for near real-time updates
+- Custom intervals can be configured via environment variables (see Configuration section)
 - **Always monitor the terminal** for errors, warnings, and important instructions
 
 ## Project Structure

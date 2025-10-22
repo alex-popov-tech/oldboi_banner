@@ -43,107 +43,154 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     process.exit(1);
   }
 
+  // Track last poll time for each source
+  const lastPolled = {
+    twitch: 0,
+    patreon: 0,
+    monobank: 0,
+    youtubeOldplay: 0,
+    youtubeOldboi: 0,
+  };
+
+  // Cache last successful results
+  type Result = { value: number } | { error: Error };
+  const cachedResults: Record<string, Result | null> = {
+    twitch: null,
+    patreon: null,
+    monobank: null,
+    youtubeOldplay: null,
+    youtubeOldboi: null,
+  };
+
   while (true) {
-    let totalCount = 0;
-    const iterationStart = Date.now();
+    const now = Date.now();
+    const iterationStart = now;
     const timestamp = new Date().toLocaleString("uk-UA", {
       dateStyle: "medium",
       timeStyle: "medium",
     });
+
     logger.log(`\n${"=".repeat(60)}`);
-    logger.log(`Fetching at ${timestamp}`);
+    logger.log(`Checking at ${timestamp}`);
     logger.log("=".repeat(60));
 
-    const twitchStart = Date.now();
-    const patreonStart = Date.now();
-    const monobankStart = Date.now();
-    const youtubeStart = Date.now();
+    // Build array of promises for sources that need polling
+    type PollTask = {
+      name: string;
+      promise: Promise<Result>;
+      start: number;
+    };
+    const pollTasks: PollTask[] = [];
 
-    const [
-      twitchResult,
-      patreonResult,
-      monobankResult,
-      youtubeOldplayResult,
-      youtubeOldboiResult,
-    ] = await Promise.all([
-      twitchClient.get().then((result) => {
-        const twitchTime = Date.now() - twitchStart;
-        return { result, time: twitchTime };
-      }),
-      patreonClient.get().then((result) => {
-        const patreonTime = Date.now() - patreonStart;
-        return { result, time: patreonTime };
-      }),
-      monobankClient.get().then((result) => {
-        const monobankTime = Date.now() - monobankStart;
-        return { result, time: monobankTime };
-      }),
-      youtubeOldplayClient.get().then((result) => {
-        const youtubeTime = Date.now() - youtubeStart;
-        return { result, time: youtubeTime };
-      }),
-      youtubeOldboiClient.get().then((result) => {
-        const youtubeTime = Date.now() - youtubeStart;
-        return { result, time: youtubeTime };
-      }),
-    ]);
-
-    if ("error" in twitchResult.result) {
-      logger.log(`Twitch error: ${twitchResult.result.error}`);
-    } else {
+    // Check each source if it needs polling
+    if (now - lastPolled.twitch >= config.TWITCH_POLL_INTERVAL) {
       logger.log(
-        `Twitch subs: ${twitchResult.result.value} (${twitchResult.time}ms)`,
+        `Polling Twitch (last: ${Math.round((now - lastPolled.twitch) / 1000)}s ago)`,
       );
-      totalCount += twitchResult.result.value;
+      pollTasks.push({
+        name: "twitch",
+        promise: twitchClient.get(),
+        start: Date.now(),
+      });
+      lastPolled.twitch = now;
     }
 
-    if ("error" in patreonResult.result) {
-      logger.log(`Patreon error: ${patreonResult.result.error}`);
-    } else {
+    if (now - lastPolled.patreon >= config.PATREON_POLL_INTERVAL) {
       logger.log(
-        `Patreon patrons: ${patreonResult.result.value} (${patreonResult.time}ms)`,
+        `Polling Patreon (last: ${Math.round((now - lastPolled.patreon) / 1000)}s ago)`,
       );
-      totalCount += patreonResult.result.value;
+      pollTasks.push({
+        name: "patreon",
+        promise: patreonClient.get(),
+        start: Date.now(),
+      });
+      lastPolled.patreon = now;
     }
 
-    if ("error" in monobankResult.result) {
-      logger.log(`Monobank error: ${monobankResult.result.error}`);
-    } else {
+    if (now - lastPolled.monobank >= config.MONOBANK_POLL_INTERVAL) {
       logger.log(
-        `Monobank patrons: ${monobankResult.result.value} (${monobankResult.time}ms)`,
+        `Polling Monobank (last: ${Math.round((now - lastPolled.monobank) / 1000)}s ago)`,
       );
-      totalCount += monobankResult.result.value;
+      pollTasks.push({
+        name: "monobank",
+        promise: monobankClient.get(),
+        start: Date.now(),
+      });
+      lastPolled.monobank = now;
     }
 
-    if ("error" in youtubeOldplayResult.result) {
-      logger.log(`YouTube oldplay error: ${youtubeOldplayResult.result.error}`);
-    } else {
+    if (now - lastPolled.youtubeOldplay >= config.YOUTUBE_POLL_INTERVAL) {
       logger.log(
-        `YouTube oldplay sponsors: ${youtubeOldplayResult.result.value} (${youtubeOldplayResult.time}ms)`,
+        `Polling YouTube oldplay (last: ${Math.round((now - lastPolled.youtubeOldplay) / 1000)}s ago)`,
       );
-      totalCount += youtubeOldplayResult.result.value;
+      pollTasks.push({
+        name: "youtubeOldplay",
+        promise: youtubeOldplayClient.get(),
+        start: Date.now(),
+      });
+      lastPolled.youtubeOldplay = now;
     }
 
-    if ("error" in youtubeOldboiResult.result) {
-      logger.log(`YouTube oldboi error: ${youtubeOldboiResult.result.error}`);
+    if (now - lastPolled.youtubeOldboi >= config.YOUTUBE_POLL_INTERVAL) {
+      logger.log(
+        `Polling YouTube oldboi (last: ${Math.round((now - lastPolled.youtubeOldboi) / 1000)}s ago)`,
+      );
+      pollTasks.push({
+        name: "youtubeOldboi",
+        promise: youtubeOldboiClient.get(),
+        start: Date.now(),
+      });
+      lastPolled.youtubeOldboi = now;
+    }
+
+    // Execute polls in parallel
+    if (pollTasks.length > 0) {
+      const results = await Promise.all(
+        pollTasks.map((t) =>
+          t.promise.then((result) => ({
+            result,
+            time: Date.now() - t.start,
+          })),
+        ),
+      );
+
+      // Update cached results and log
+      for (let i = 0; i < pollTasks.length; i++) {
+        const task = pollTasks[i];
+        const { result, time } = results[i];
+        cachedResults[task.name] = result;
+
+        if ("error" in result) {
+          logger.log(`${task.name} error: ${result.error}`);
+        } else {
+          logger.log(`${task.name}: ${result.value} (${time}ms)`);
+        }
+      }
     } else {
       logger.log(
-        `YouTube oldboi sponsors: ${youtubeOldboiResult.result.value} (${youtubeOldboiResult.time}ms)`,
+        "No sources need polling this iteration (using cached values)",
       );
-      totalCount += youtubeOldboiResult.result.value;
+    }
+
+    // Calculate total using cached results
+    let totalCount = 0;
+    for (const [name, result] of Object.entries(cachedResults)) {
+      if (result && "value" in result) {
+        totalCount += result.value;
+      }
     }
 
     const iterationTime = Date.now() - iterationStart;
     logger.log("=".repeat(60));
     logger.log(`Total subscribers: ${totalCount}`);
-    logger.log(`Total iteration time: ${iterationTime}ms`);
+    logger.log(`Iteration time: ${iterationTime}ms`);
     logger.log("=".repeat(60));
 
     // Generate widget.html with current counter value
     try {
       const widgetContent = widgetTemplate.replace(
         "const COUNTER = 0;",
-        `const COUNTER = ${totalCount};`
+        `const COUNTER = ${totalCount};`,
       );
       await writeFile("widget.html", widgetContent, "utf-8");
       logger.log(`Widget updated: widget.html (counter: ${totalCount})`);
@@ -151,6 +198,21 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
       logger.log(`Failed to write widget.html: ${error}`);
     }
 
-    await sleep(60 * 1000);
+    // Dynamic sleep: calculate time until next source needs polling
+    const nextPollTimes = [
+      lastPolled.twitch + config.TWITCH_POLL_INTERVAL,
+      lastPolled.patreon + config.PATREON_POLL_INTERVAL,
+      lastPolled.monobank + config.MONOBANK_POLL_INTERVAL,
+      lastPolled.youtubeOldplay + config.YOUTUBE_POLL_INTERVAL,
+      lastPolled.youtubeOldboi + config.YOUTUBE_POLL_INTERVAL,
+    ];
+
+    const nextPollTime = Math.min(...nextPollTimes);
+    const sleepDuration = Math.max(1000, nextPollTime - Date.now()); // At least 1 second
+
+    logger.log(
+      `Sleeping for ${Math.round(sleepDuration / 1000)}s until next poll`,
+    );
+    await sleep(sleepDuration);
   }
 })();

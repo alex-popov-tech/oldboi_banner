@@ -36,7 +36,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   // Read widget template once at startup
   let widgetTemplate: string;
   try {
-    widgetTemplate = await readFile("widget.template", "utf-8");
+    widgetTemplate = await readFile("widget.html", "utf-8");
     logger.log("Widget template loaded successfully");
   } catch (error) {
     logger.log(`Failed to load widget template: ${error}`);
@@ -61,6 +61,9 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     youtubeOldplay: null,
     youtubeOldboi: null,
   };
+
+  // Track last total count to detect changes
+  let lastTotalCount = 0;
 
   while (true) {
     const now = Date.now();
@@ -186,16 +189,21 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     logger.log(`Iteration time: ${iterationTime}ms`);
     logger.log("=".repeat(60));
 
-    // Generate widget.html with current counter value
-    try {
-      const widgetContent = widgetTemplate.replace(
-        "const COUNTER = 0;",
-        `const COUNTER = ${totalCount};`,
-      );
-      await writeFile("widget.html", widgetContent, "utf-8");
-      logger.log(`Widget updated: widget.html (counter: ${totalCount})`);
-    } catch (error) {
-      logger.log(`Failed to write widget.html: ${error}`);
+    // Generate widget.html only if counter changed
+    if (totalCount !== lastTotalCount) {
+      try {
+        const widgetContent = widgetTemplate.replace(
+          /const COUNTER\s*=\s*\d+\s*;/,
+          `const COUNTER = ${totalCount};`,
+        );
+        await writeFile("widget.html", widgetContent, "utf-8");
+        logger.log(`Widget updated: widget.html (counter: ${totalCount})`);
+        lastTotalCount = totalCount;
+      } catch (error) {
+        logger.log(`Failed to write widget.html: ${error}`);
+      }
+    } else {
+      logger.log(`Widget unchanged (counter still: ${totalCount})`);
     }
 
     // Dynamic sleep: calculate time until next source needs polling

@@ -1,0 +1,125 @@
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #000;
+      }
+
+      #container {
+        width: 900px;
+        height: 150px;
+        background: linear-gradient(to right, #a855f7, #06b6d4);
+        border-radius: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 50px;
+      }
+
+      #counter {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-weight: 900;
+        font-size: 80px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .digit-container {
+        display: inline-block;
+        perspective: 200px;
+        width: 0.6em;
+        text-align: center;
+      }
+
+      .digit {
+        display: inline-block;
+        transform-style: preserve-3d;
+        color: #1a1a1a;
+      }
+
+      .digit.flip {
+        animation: flipAnimation 0.6s ease-in-out;
+      }
+
+      @keyframes flipAnimation {
+        0% {
+          transform: rotateX(0deg);
+        }
+        50% {
+          transform: rotateX(90deg);
+        }
+        100% {
+          transform: rotateX(0deg);
+        }
+      }
+
+      .separator {
+        color: #1a1a1a;
+        margin: 0 0.15em;
+      }
+
+      .total {
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="counter"></div>
+    </div>
+
+    <script type="text/javascript">
+      /** DO NO TOUCH **/
+      // this must be replaced by polling script with actual counter
+      const COUNTER = 0;
+      /** DO NO TOUCH **/
+      const TOTAL = 1000;
+
+      // Get previous counter from localStorage
+      const previousCounter = localStorage.getItem("counter");
+      const prevDigits = previousCounter ? previousCounter.split("") : null;
+
+      // Convert current counter to padded string
+      const currentStr = String(COUNTER).padStart(4, " ");
+      const currentDigits = currentStr.split("");
+
+      // Build counter HTML with digit containers
+      const counterEl = document.getElementById("counter");
+      let html = "";
+
+      currentDigits.forEach((digit, index) => {
+        if (digit === " ") {
+          // Empty space, render invisible placeholder
+          html +=
+            '<span class="digit-container"><span class="digit">&nbsp;</span></span>';
+        } else {
+          // Determine if this digit changed
+          const hasChanged = prevDigits && prevDigits[index] !== digit;
+          const animClass = hasChanged ? " flip" : "";
+          html += `<span class="digit-container"><span class="digit${animClass}">${digit}</span></span>`;
+        }
+      });
+
+      // Add separator and total
+      html += '<span class="separator">/</span>';
+      html += `<span class="total">${TOTAL}</span>`;
+
+      counterEl.innerHTML = html;
+
+      // Store current counter for next comparison
+      localStorage.setItem("counter", String(COUNTER).padStart(4, " "));
+
+      // refresh counter each 10 seconds
+      setTimeout(() => {
+        location.reload();
+      }, 10_000);
+    </script>
+  </body>
+</html>

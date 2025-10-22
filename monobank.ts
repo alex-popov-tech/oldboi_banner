@@ -1,4 +1,7 @@
 import { chromium, Page, expect } from "@playwright/test";
+import { createLogger } from "./logger";
+
+const logger = createLogger("monobank");
 
 async function getSubscribers(
   page: Page,
@@ -22,6 +25,7 @@ async function getSubscribers(
 }
 
 export async function init() {
+  logger.log("init started");
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   await page.goto("https://base.monobank.ua/oldboi");
@@ -32,6 +36,7 @@ export async function init() {
     );
   }
 
+  logger.log("init finished");
   return {
     get: async (): Promise<{ value: number } | { error: Error }> => {
       await page.reload();

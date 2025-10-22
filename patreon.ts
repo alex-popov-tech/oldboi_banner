@@ -1,3 +1,7 @@
+import { createLogger } from "./logger";
+
+const logger = createLogger("patreon");
+
 type Member = {
   id: string;
   type: string;
@@ -64,9 +68,12 @@ async function get(args: {
 }
 
 export function init(args: { token: string; campaignId: string }) {
-  return {
+  logger.log("init started");
+  const client = {
     get: async (): Promise<{ value: number } | { error: Error }> => {
       return await get(args);
     },
   };
+  logger.log("init finished");
+  return client;
 }

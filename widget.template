@@ -1,0 +1,48 @@
+<html>
+  <head>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Roboto&display=swap");
+
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      #container {
+        width: 565px;
+        background: #c0392b;
+        padding: 1.5em;
+        margin: 2em;
+        border-radius: 0.5em;
+      }
+
+      span {
+        line-height: 0;
+        padding: 0 1em;
+        text-align: center;
+        text-transform: uppercase;
+        font-weight: 900;
+        font-size: 3em;
+        font-family: "Roboto", sans-serif;
+        text-shadow: 2px 2px #e74c3c;
+        color: white;
+        letter-spacing: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+        <span id="counter">0</span>
+    </div>
+
+    <script type="text/javascript">
+      // this must be replaced by polling script with actual counter
+      const COUNTER = 0;
+      document.querySelector("#counter").textContent = COUNTER;
+      // refresh counter each 5 seconds
+      setTimeout(() => {
+        navigation.reload();
+      }, 5_000);
+    </script>
+  </body>
+</html>

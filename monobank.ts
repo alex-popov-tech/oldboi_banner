@@ -11,7 +11,7 @@ async function getSubscribers(
     .filter({ hasText: "OLDboi" })
     .locator("xpath=following-sibling::div[1]");
   try {
-    await expect(element).toHaveText(/\d+ subscribers/);
+    await expect(element).toHaveText(/\d+/);
   } catch (error) {
     return { error: error as Error };
   }

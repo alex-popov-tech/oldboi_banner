@@ -26,11 +26,11 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const youtubeOldplayClient = await youtube.init({
     name: "oldboi",
-    url: "https://studio.youtube.com/channel/UCVbmzw9YUnTuowKV8zEtCLA/monetization/memberships",
+    url: "https://studio.youtube.com/channel/UC9S0Ge7cw73nqvZ4FOA3gAQ/monetization/memberships",
   });
   const youtubeOldboiClient = await youtube.init({
     name: "oldplay",
-    url: "https://studio.youtube.com/channel/UC9S0Ge7cw73nqvZ4FOA3gAQ/monetization/memberships",
+    url: "https://studio.youtube.com/channel/UCVbmzw9YUnTuowKV8zEtCLA/monetization/memberships",
   });
 
   // Read widget template once at startup

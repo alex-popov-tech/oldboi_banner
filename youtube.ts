@@ -33,7 +33,7 @@ async function getSponsors(
 ): Promise<{ value: number } | { error: Error }> {
   const element = page.locator("#total-sponsors-card > p");
   try {
-    await expect(element).toHaveText(/\d+/, { timeotu: 10_000 });
+    await expect(element).toHaveText(/\d+/, { timeout: 20_000 });
   } catch (error) {
     return { error: error as Error };
   }
